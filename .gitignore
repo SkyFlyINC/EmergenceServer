@@ -44,3 +44,7 @@ pnpm-lock.yaml
 # 类型Script 编译输出
 *.js.map
 *.d.ts
+
+# TypeScript 特定文件
+*.tsbuildinfo
+.tscache/

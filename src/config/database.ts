@@ -43,9 +43,21 @@ async function initDatabase() {
         username VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
+        data TEXT,
+        permission INT NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    //创建课程表
+    await dbConnection.query(`
+      CREATE TABLE IF NOT EXISTS courses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        course_name VARCHAR(255) NOT NULL,
+        users_related TEXT,
+        arrangement TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+      `)
 
     console.log('数据库初始化成功');
     dbConnection.release();
@@ -54,5 +66,14 @@ async function initDatabase() {
     process.exit(1);
   }
 }
+setInterval(async () => {
+  try {
+    const conn = await pool.getConnection();
+    await conn.ping();
+    conn.release();
+  } catch (err) {
+    console.error('连接检查失败:', err);
+  }
+}, 30000); // 每30秒检查一次
 
 export { pool, initDatabase };

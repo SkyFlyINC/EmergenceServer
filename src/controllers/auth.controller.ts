@@ -1,7 +1,12 @@
 import { Request, Response } from 'express';
-import { UserModel } from '../models/user.model';
+import { Permission, UserModel } from '../models/user.model';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+
+export interface decodedJWT {
+  id:number,
+  username:string
+}
 
 export class AuthController {
   static async login(req: Request, res: Response) {
@@ -30,6 +35,8 @@ export class AuthController {
         user: {
           id: user.id,
           username: user.username,
+          permission: user.permission,
+          data: user.data,
           email: user.email
         }
       });
@@ -54,8 +61,8 @@ export class AuthController {
         return res.status(409).json({ message: '用户名已存在' });
       }
 
-      // 创建新用户
-      const result = await UserModel.createUser({ username, password, email });
+      // 创建新用户，默认权限为普通用户
+      const result = await UserModel.createUser({ username, password, email, permission: Permission.USER });
 
       // 生成 JWT 令牌
       const token = jwt.sign(
@@ -63,7 +70,7 @@ export class AuthController {
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '1h' }
       );
-
+      
       res.status(201).json({
         message: '注册成功',
         token,

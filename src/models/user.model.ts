@@ -1,7 +1,7 @@
 import { pool } from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
-
 import bcrypt from 'bcryptjs';
+
 interface UserRow extends RowDataPacket {
   id: number;
   username: string;
@@ -25,9 +25,9 @@ export class UserModel {
     return rows[0];
   }
 
-  static async createUser(user: User) {
+  static async createUser(user: User): Promise<ResultSetHeader> {
     const hashedPassword = await bcrypt.hash(user.password, 10);
-    const [result] = await pool.execute(
+    const [result] = await pool.execute<ResultSetHeader>(
       'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
       [user.username, hashedPassword, user.email]
     );

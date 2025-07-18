@@ -5,7 +5,8 @@ import jwt from 'jsonwebtoken';
 
 export interface decodedJWT {
   id:number,
-  username:string
+  username:string,
+  permission: Permission,
 }
 
 export class AuthController {
@@ -24,7 +25,7 @@ export class AuthController {
       }
 
       const token = jwt.sign(
-        { id: user.id, username: user.username },
+        { id: user.id, username: user.username, permission: user.permission },
         process.env.JWT_SECRET || 'your-secret-key',
         { expiresIn: '1h' }
       );
@@ -83,6 +84,79 @@ export class AuthController {
     } catch (error) {
       console.error('注册失败:', error);
       res.status(500).json({ message: '服务器错误' });
+    }
+  }
+  static async getUserInfo(req: Request, res: Response) {
+    try {
+      
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: '未授权访问' });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as decodedJWT;
+      const user = await UserModel.findByUserId(decoded.id);
+      if (!user) {
+        return res.status(404).json({ message: '用户未找到' });
+      }
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        permission: user.permission,
+        data: user.data
+      });
+    } catch (error) {
+      res.status(500).json({ message: '服务器错误' });
+      console.error('获取用户信息失败:', error);
+    }
+  }
+  static async getUserById(req: Request, res: Response) {
+    try {
+      //鉴权
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: '未授权访问' });
+      }
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: '无效的用户ID' });
+      }
+
+      const user = await UserModel.findByUserId(userId);
+      if (!user) {
+        return res.status(404).json({ message: '用户未找到' });
+      }
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        permission: user.permission,
+        data: user.data
+      });
+    } catch (error) {
+      res.status(500).json({ message: '服务器错误' });
+      console.error('获取用户信息失败:', error);
+    }
+  }
+  static async getAllUsers(req: Request, res: Response) {
+    try {
+      //鉴权
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: '未授权访问' });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as decodedJWT;
+      if ((await UserModel.findByUserId(decoded.id)).permission < Permission.ADMIN) {
+        return res.status(403).json({ message: '权限不足' });
+      }
+      const users = await UserModel.findAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: '服务器错误' });
+      console.error('获取所有用户失败:', error);
     }
   }
 }

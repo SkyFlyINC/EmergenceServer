@@ -39,4 +39,7 @@ router.put('/updatePermission/:id', AuthController.updatePermissionById);
 router.put('/updateUsername', AuthController.updateUsername);
 router.put('/updateUsername/:id', AuthController.updateUsernameById);
 
+// 管理员创建用户
+router.post('/createUser', AuthController.createUser);
+
 export default router;

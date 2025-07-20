@@ -121,9 +121,12 @@ export class UserModel {
   }
   static async createUser(user: User): Promise<ResultSetHeader> {
     const hashedPassword = await bcrypt.hash(user.password, 10);
+    if (!user.data) {
+      user.data = '';
+    }
     const [result] = await pool.execute<ResultSetHeader>(
-      'INSERT INTO users (username, password, email, permission) VALUES (?, ?, ?, ?)',
-      [user.username, hashedPassword, user.email, user.permission]
+      'INSERT INTO users (username, password, email, data, permission) VALUES (?, ?, ?, ?, ?)',
+      [user.username, hashedPassword, user.email, user.data, user.permission]
     );
     return result;
   }

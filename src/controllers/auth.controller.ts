@@ -518,4 +518,36 @@ export class AuthController {
       console.error('更新用户名失败:', error);
     }
   }
+  static async createUser(req: Request, res: Response) {
+    try {
+      //鉴权
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: '未授权访问' });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as decodedJWT;
+      if ((await UserModel.findByUserId(decoded.id)).permission < Permission.ADMIN) {
+        return res.status(403).json({ message: '权限不足' });
+      }
+      const { username, password, email, permission, data } = req.body;
+
+      // 验证用户输入
+      if (!username || !password || !email) {
+        return res.status(400).json({ message: '请填写所有必需字段' });
+      }
+
+      // 检查用户名是否已存在
+      const existingUser = await UserModel.findByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ message: '用户名已存在' });
+      }
+
+      // 创建新用户，默认权限为普通用户
+      const result = await UserModel.createUser({ username, password, email, data, permission });
+      res.json({ message: '用户创建成功', result });
+    } catch (error) {
+      res.status(500).json({ message: '服务器错误' });
+      console.error('创建用户失败:', error);
+    }
+  }
 }

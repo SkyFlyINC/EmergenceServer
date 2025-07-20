@@ -28,7 +28,16 @@ export interface User {
   email: string;
 }
 
+export interface UserUpdate {
+  id: number;
+  username?: string;
+  data?: string;
+  permission?: number;
+  email?: string;
+}
+
 export class UserModel {
+
   static async findByUsername(userName: string): Promise<UserRow | undefined> {
     const [rows] = await pool.execute<UserRow[]>(
       'SELECT * FROM users WHERE username = ?',
@@ -37,17 +46,34 @@ export class UserModel {
     return rows[0];
   }
 
-  static async findByUserId(userId:number){
-        const [rows] = await pool.execute<UserRow[]>(
+  static async findByUserId(userId: number) {
+    const [rows] = await pool.execute<UserRow[]>(
       'SELECT * FROM users WHERE id = ?',
       [userId]
     );
     return rows[0];
   }
-  static async updateUser(user: User): Promise<ResultSetHeader> {
+  static async updateUser(user: UserUpdate): Promise<ResultSetHeader> {
+    //检查字段完整性，确保所有必需字段都存在，如果不存在使用原先的数据库值
+    const userRow = await UserModel.findByUserId(user.id);
+    if (!userRow) {
+      throw new Error('User not found');
+    }
+    if (!user.username) {
+      user.username = userRow.username;
+    }
+    if (!user.data) {
+      user.data = userRow.data;
+    }
+    if (!user.permission) {
+      user.permission = userRow.permission;
+    }
+    if (!user.email) {
+      user.email = userRow.email;
+    }
     const [result] = await pool.execute<ResultSetHeader>(
-      'UPDATE users SET username = ?, password = ?, data = ?, permission = ?, email = ? WHERE id = ?',
-      [user.username, user.password, user.data, user.permission, user.email, user.id]
+      'UPDATE users SET username = ?, data = ?, permission = ?, email = ? WHERE id = ?',
+      [user.username, user.data, user.permission, user.email, user.id]
     );
     return result;
   }
@@ -98,6 +124,20 @@ export class UserModel {
     const [result] = await pool.execute<ResultSetHeader>(
       'INSERT INTO users (username, password, email, permission) VALUES (?, ?, ?, ?)',
       [user.username, hashedPassword, user.email, user.permission]
+    );
+    return result;
+  }
+  static async updateEmail(userId: number, email: any) {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'UPDATE users SET email = ? WHERE id = ?',
+      [email, userId]
+    );
+    return result;
+  }
+  static async updateUsername(userId: number, username: string): Promise<ResultSetHeader> {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'UPDATE users SET username = ? WHERE id = ?',
+      [username, userId]
     );
     return result;
   }
